@@ -32,9 +32,19 @@ def rename_files():
         os.rename(joint_path, joint_new_path)
 
 
-def get_file_name(short, s):
+def manipulate_data_type(data_type):
+    if not data_type.startswith('com.'):
+        if data_type.startswith('s.'):
+            data_type = 'shealth.' + data_type[2:]
+        else:
+            data_type = 'health.' + data_type
+        data_type = 'com.samsung.' + data_type
+    return data_type
+
+
+def get_csv_file_name(data_type):
     direct = os.path.join(os.path.dirname(__file__), 'data')
-    return os.path.join(direct, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
+    return os.path.join(direct, manipulate_data_type(data_type) + '.csv')
 
 
 def my_lambda(x):
@@ -48,7 +58,7 @@ def my_lambda(x):
 
 
 def get_data(short):
-    fname = get_file_name(short, s=True)
+    fname = get_csv_file_name('s.' + short)
     file = open(fname, "r")
     txt = file.read()
     # txt.replace('\n,', '\n')
@@ -139,12 +149,8 @@ def get_exercise_table():
 
 def get_json_file_name(hash_data, data_type):
     starting_letter = hash_data[0]
-    if not data_type.startswith('.com'):
-        if data_type.startswith('s.'):
-            data_type = 'shealth' + data_type[1:]
-        data_type = 'com.samsung.' + data_type
-
-    return os.path.join(os.path.dirname(__file__), 'data', 'jsons', data_type, str(starting_letter), hash_data)
+    return os.path.join(os.path.dirname(__file__), 'data', 'jsons', manipulate_data_type(data_type),
+                        str(starting_letter), hash_data)
 
 
 def get_json_data(hash_data, data_type):
