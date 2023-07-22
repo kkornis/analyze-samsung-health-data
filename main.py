@@ -12,6 +12,17 @@ def get_file_name(short, s):
     return os.path.join(dir, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
 
 
+def rename_files():
+    direct = os.path.join(os.path.dirname(__file__), 'data')
+    files = os.listdir(direct)
+    files = [f for f in files if f.endswith('.csv')]
+
+    for file in files:
+        joint_path = os.path.join('data', file)
+        joint_new_path = joint_path[:-19] + '.csv'
+        os.system('git -C K:/Kristof/prg/analyze_heart_rate_data mv ' + joint_path + ' ' + joint_new_path)
+
+
 def my_lambda(x):
     if x.startswith('com.samsung.health.sleep.'):
         x = 's.s.' + x[25:]
@@ -58,10 +69,6 @@ def get_sleep_data_table(time_stamp):
 
 
 def play_with_sleep_data():
-    direct = os.path.join(os.path.dirname(__file__), 'data')
-    files = os.listdir(direct)
-    files = [f for f in files if f.endswith('.csv')]
-
     df0 = get_sleep_data_table('20230717112944')
 
     df2 = get_data('sleep_combined.20230717112944')
