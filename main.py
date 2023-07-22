@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 
 
 '''The data is updated at 20230717112944'''
+as_of_date = '20230717112944'
 
 
 def get_file_name(short, s):
-    dir = os.path.join(os.path.dirname(__file__), 'data')
-    return os.path.join(dir, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
+    direct = os.path.join(os.path.dirname(__file__), 'data')
+    return os.path.join(direct, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
 
 
 def rename_files():
@@ -45,8 +46,8 @@ def get_data(short):
     return df
 
 
-def get_sleep_data_table(time_stamp):
-    data_name = 'sleep.' + time_stamp
+def get_sleep_data_table():
+    data_name = 'sleep'
     df = get_data(data_name)
     cols = df.columns
     dates_cols = ['s.s.start_time', 's.s.end_time']
@@ -69,10 +70,10 @@ def get_sleep_data_table(time_stamp):
 
 
 def play_with_sleep_data():
-    df0 = get_sleep_data_table('20230717112944')
+    df0 = get_sleep_data_table()
 
-    df2 = get_data('sleep_combined.20230717112944')
-    df3 = get_data('sleep_goal.20230717112944')
+    df2 = get_data('sleep_combined')
+    df3 = get_data('sleep_goal')
 
     df0['sleep_duration_in_h'] = df0['sleep_duration'] / 60
     df0['s.s.start_time_date'] = df0['s.s.start_time'].dt.date
@@ -94,8 +95,8 @@ def play_with_sleep_data():
     return df0
 
 
-def get_exercise_table(time_stamp):
-    data_name = 'exercise.' + time_stamp
+def get_exercise_table():
+    data_name = 'exercise'
     df = get_data(data_name)
     cols = df.columns
     dates_cols = ['s.e.start_time', 's.e.end_time']
@@ -125,7 +126,7 @@ def get_exercise_table(time_stamp):
 
 def play_with_exercise_data():
     # mean_speed is in m/s
-    df = get_exercise_table('20230717112944')
+    df = get_exercise_table()
     df_walk = df[df['s.e.exercise_type'] == 1001]
     df_run = df[df['s.e.exercise_type'] == 1002]
     df_pull_ups = df[df['s.e.exercise_type'] == 10005]
@@ -142,8 +143,8 @@ def play_with_exercise_data():
     return df
 
 
-def get_heart_rate_table(time_stamp):
-    data_name = 'tracker.heart_rate.' + time_stamp
+def get_heart_rate_table():
+    data_name = 'tracker.heart_rate'
     df = get_data(data_name)
     cols = df.columns
     dates_cols = ['s.h.start_time', 's.h.end_time']
@@ -167,7 +168,7 @@ def get_heart_rate_table(time_stamp):
 
 
 def play_with_heart_rate_data():
-    df = get_heart_rate_table('20230717112944')
+    df = get_heart_rate_table()
     df['diff'] = df['s.h.max'] - df['s.h.min']
     df['s.h.start_time_date'] = df['s.h.start_time'].dt.date
 
