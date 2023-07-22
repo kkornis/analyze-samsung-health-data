@@ -4,6 +4,9 @@ import os
 import matplotlib.pyplot as plt
 
 
+'''The data is updated at 20230717112944'''
+
+
 def get_file_name(short, s):
     dir = os.path.join(os.path.dirname(__file__), 'data')
     return os.path.join(dir, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
