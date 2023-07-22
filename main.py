@@ -13,7 +13,7 @@ def get_file_name(short, s):
     return os.path.join(direct, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
 
 
-def rename_files():
+def mv_files():
     direct = os.path.join(os.path.dirname(__file__), 'data')
     files = os.listdir(direct)
     files = [f for f in files if f.endswith('.csv')]
@@ -22,6 +22,18 @@ def rename_files():
         joint_path = os.path.join('data', file)
         joint_new_path = joint_path[:-19] + '.csv'
         os.system('git -C K:/Kristof/prg/analyze_heart_rate_data mv ' + joint_path + ' ' + joint_new_path)
+
+
+def rename_files():
+    direct = os.path.join(os.path.dirname(__file__), 'data')
+    files = os.listdir(direct)
+    files = [f for f in files if f.endswith('.csv')]
+
+    for file in files:
+        joint_path = os.path.join(direct, file)
+        new_file = file[:-19] + '.csv'
+        joint_new_path = os.path.join(direct, new_file)
+        os.rename(joint_path, joint_new_path)
 
 
 def my_lambda(x):
