@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
+import json
 
 
 '''The data is updated at 20230722102693'''
@@ -136,16 +137,54 @@ def get_exercise_table():
     return df
 
 
+def get_json_file_name(hash_data, data_type):
+    starting_letter = hash_data[0]
+    if not data_type.startswith('.com'):
+        if data_type.startswith('s.'):
+            data_type = 'shealth' + data_type[1:]
+        data_type = 'com.samsung.' + data_type
+
+    return os.path.join(os.path.dirname(__file__), 'data', 'jsons', data_type, str(starting_letter), hash_data)
+
+
+def get_json_data(hash_data, data_type):
+    file_path = get_json_file_name(hash_data, data_type)
+    df = pd.read_json(file_path)
+    return df
+
+
+def get_complex_json_data(hash_data, data_type):
+    file_path = get_json_file_name(hash_data, data_type)
+    with open(file_path, 'r') as data_file:
+        data = json.load(data_file)
+        in_data = data['data'][0]
+        advanced_metrics = in_data['advanced_metrics']
+        df_data = {'data_type': [], 'overall_score': [], 'score_ratio': []}
+        keys = df_data.keys()
+        dfl = []
+        for line in advanced_metrics:
+            for key in keys:
+                df_data[key].append(line[key])
+            dfl.append(pd.DataFrame(line['chart_data']))
+        df = pd.DataFrame(df_data)
+        return dfl, df, in_data['sampling_rate'], in_data['service_name']
+
+
 def play_with_exercise_data():
     # mean_speed is in m/s
     df = get_exercise_table()
+    type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike', 14001: 'swim_outdoor',
+                15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton', 4005: 'handball'}
     df_walk = df[df['s.e.exercise_type'] == 1001]
     df_run = df[df['s.e.exercise_type'] == 1002]
     df_pull_ups = df[df['s.e.exercise_type'] == 10005]
     df_cycling = df[df['s.e.exercise_type'] == 11007]
     df_hike = df[df['s.e.exercise_type'] == 13001]
     df_swim_outdoor = df[df['s.e.exercise_type'] == 14001]
-    15002
+    df_weight_machines = df[df['s.e.exercise_type'] == 15002]
+    df_push_up = df[df['s.e.exercise_type'] == 10004]
+    df_badminton = df[df['s.e.exercise_type'] == 6003]
+    df_handball = df[df['s.e.exercise_type'] == 4005]
 
     df_run['s.e.mean_speed_kmph'] = df_run['s.e.mean_speed'] * 3.6
     df_run['s.e.max_speed_kmh'] = df_run['s.e.max_speed'] * 3.6 - df_run['s.e.mean_speed_kmph']
@@ -155,6 +194,16 @@ def play_with_exercise_data():
     df_plot = df_run[['s.e.mean_speed_kmph', 's.e.max_speed_kmh', 's.e.start_time_date']]
     df_plot.set_index('s.e.start_time_date', inplace=True)
     df_plot.plot.bar(stacked=True)
+
+    line_ind = 0
+
+    data1 = get_json_data(df_run['live_data_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data2 = get_json_data(df_run['sensing_status'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data3 = get_json_data(df_run['location_data_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data4 = get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data5 = get_json_data(df_run['s.e.location_data'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data6 = get_json_data(df_run['s.e.live_data'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    # data7 = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
 
     return df
 
