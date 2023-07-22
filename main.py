@@ -4,8 +4,8 @@ import os
 import matplotlib.pyplot as plt
 
 
-'''The data is updated at 20230717112944'''
-as_of_date = '20230717112944'
+'''The data is updated at 20230722102693'''
+as_of_date = '20230722102693'
 
 
 def get_file_name(short, s):
