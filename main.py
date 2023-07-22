@@ -9,11 +9,6 @@ import json
 as_of_date = '20230722102693'
 
 
-def get_file_name(short, s):
-    direct = os.path.join(os.path.dirname(__file__), 'data')
-    return os.path.join(direct, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
-
-
 def mv_files():
     direct = os.path.join(os.path.dirname(__file__), 'data')
     files = os.listdir(direct)
@@ -35,6 +30,11 @@ def rename_files():
         new_file = file[:-19] + '.csv'
         joint_new_path = os.path.join(direct, new_file)
         os.rename(joint_path, joint_new_path)
+
+
+def get_file_name(short, s):
+    direct = os.path.join(os.path.dirname(__file__), 'data')
+    return os.path.join(direct, 'com.samsung.' + ('s' if s else '') + 'health.' + short + '.csv')
 
 
 def my_lambda(x):
