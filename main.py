@@ -32,90 +32,131 @@ def rename_files():
         os.rename(joint_path, joint_new_path)
 
 
-def manipulate_data_type(data_type):
-    if not data_type.startswith('com.'):
-        if data_type.startswith('s.'):
-            data_type = 'shealth.' + data_type[2:]
-        else:
-            data_type = 'health.' + data_type
-        data_type = 'com.samsung.' + data_type
-    return data_type
+class HealthDataTable:
+    data_dir = None
+    csv_data_name = None
+
+    def __init__(self, data_dir: str):
+        HealthDataTable.data_dir = data_dir
+
+    @staticmethod
+    def manipulate_data_type(data_type):
+        if not data_type.startswith('com.'):
+            if data_type.startswith('s.'):
+                data_type = 'shealth.' + data_type[2:]
+            else:
+                data_type = 'health.' + data_type
+            data_type = 'com.samsung.' + data_type
+        return data_type
+
+    @staticmethod
+    def get_csv_file_name(data_type):
+        return os.path.join(HealthDataTable.data_dir, HealthDataTable.manipulate_data_type(data_type) + '.csv')
+
+    @staticmethod
+    def get_json_file_name(hash_data, data_type):
+        starting_letter = hash_data[0]
+        return os.path.join(os.path.dirname(__file__), 'data', 'jsons', HealthDataTable.manipulate_data_type(data_type),
+                            str(starting_letter), hash_data)
+
+    @staticmethod
+    def my_lambda(x):
+        if x.startswith('com.samsung.health.sleep.'):
+            x = 's.s.' + x[25:]
+        if x.startswith('com.samsung.health.exercise.'):
+            x = 's.e.' + x[28:]
+        if x.startswith('com.samsung.health.heart_rate.'):
+            x = 's.h.' + x[30:]
+        return x
+
+    @classmethod
+    def get_data(cls) -> pd.DataFrame:
+        file_name = HealthDataTable.get_csv_file_name('s.' + cls.csv_data_name)
+        file = open(file_name, "r")
+        txt = file.read()
+        # txt.replace('\n,', '\n')
+        lines = txt.split('\n')
+
+        df = pd.DataFrame([line.split(',')[:-1] for line in lines[2:-1]], columns=lines[1].split(','))
+        df.rename(HealthDataTable.my_lambda, inplace=True, axis='columns')
+        return df
+
+    def get_df(self) -> pd.DataFrame:
+        return self.get_data()
+
+    def get_formatted_df(self) -> pd.DataFrame:
+        raise NotImplementedError
 
 
-def get_csv_file_name(data_type):
-    direct = os.path.join(os.path.dirname(__file__), 'data')
-    return os.path.join(direct, manipulate_data_type(data_type) + '.csv')
+class SleepCombined(HealthDataTable):
+    csv_data_name = 'sleep_combined'
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
+
+    def get_formatted_df(self) -> pd.DataFrame:
+        return self.get_df()
 
 
-def my_lambda(x):
-    if x.startswith('com.samsung.health.sleep.'):
-        x = 's.s.' + x[25:]
-    if x.startswith('com.samsung.health.exercise.'):
-        x = 's.e.' + x[28:]
-    if x.startswith('com.samsung.health.heart_rate.'):
-        x = 's.h.' + x[30:]
-    return x
+class SleepGoal(HealthDataTable):
+    csv_data_name = 'sleep_goal'
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
+
+    def get_formatted_df(self) -> pd.DataFrame:
+        return self.get_df()
 
 
-def get_data(short):
-    fname = get_csv_file_name('s.' + short)
-    file = open(fname, "r")
-    txt = file.read()
-    # txt.replace('\n,', '\n')
-    lines = txt.split('\n')
+class Sleep(HealthDataTable):
+    csv_data_name = 'sleep'
 
-    df = pd.DataFrame([line.split(',')[:-1] for line in lines[2:-1]], columns=lines[1].split(','))
-    df.rename(my_lambda, inplace=True, axis='columns')
-    return df
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
 
+    def get_formatted_df(self) -> pd.DataFrame:
+        return self.get_df()
 
-def get_sleep_data_table():
-    data_name = 'sleep'
-    df = get_data(data_name)
-    cols = df.columns
-    dates_cols = ['s.s.start_time', 's.s.end_time']
-    meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle', 'efficiency', 'sleep_duration']
-    semi_meaningful_cols = ['factor_' + str(i).zfill(2) for i in range(1, 11)]
-    meaningless_col = ['has_sleep_data', 'data_version']
-    empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
-    id_cols = ['combined_id', 'extra_data']
-    col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
-    remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
-    col_types = col_types + [remaining]
-    cols = sum(col_types, [])
-    df = df[cols]
-    for col in meaningful_cols + semi_meaningful_cols + meaningless_col:
-        df[col] = pd.to_numeric(df[col])
-    for col in dates_cols:
-        df[col] = pd.to_datetime(df[col])
-    df.sort_values(by='s.s.start_time', inplace=True)
-    return df
+    def get_formatted_df(self):
+        df = self.get_data()
+        cols = df.columns
+        dates_cols = ['s.s.start_time', 's.s.end_time']
+        meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle', 'efficiency', 'sleep_duration']
+        semi_meaningful_cols = ['factor_' + str(i).zfill(2) for i in range(1, 11)]
+        meaningless_col = ['has_sleep_data', 'data_version']
+        empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
+        id_cols = ['combined_id', 'extra_data']
+        col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
+        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
+        col_types = col_types + [remaining]
+        cols = sum(col_types, [])
+        df = df[cols]
+        for col in meaningful_cols + semi_meaningful_cols + meaningless_col:
+            df[col] = pd.to_numeric(df[col])
+        for col in dates_cols:
+            df[col] = pd.to_datetime(df[col])
+        df.sort_values(by='s.s.start_time', inplace=True)
+        return df
 
+    def play_with_sleep_data(self):
+        df = self.get_formatted_df()
 
-def play_with_sleep_data():
-    df_comb = get_data('sleep_combined')
-    df_goal = get_data('sleep_goal')
+        df['sleep_duration_in_h'] = df['sleep_duration'] / 60
+        df['s.s.start_time_date'] = df['s.s.start_time'].dt.date
 
-    df = get_sleep_data_table()
+        # when I should never sleep
+        midday = 14
+        time_zone_delay = 2
+        ser_h = df['s.s.start_time'].dt.hour + time_zone_delay - midday
+        ser_h = np.where(ser_h < 0, ser_h + 24, ser_h) + midday - 24
+        df['s.s.start_time_time'] = ser_h + df['s.s.start_time'].dt.minute / 60
 
-    df['sleep_duration_in_h'] = df['sleep_duration'] / 60
-    df['s.s.start_time_date'] = df['s.s.start_time'].dt.date
+        fig, (ax1, ax2) = plt.subplots(2, 1)
+        df.plot(kind='bar', x='s.s.start_time_date', y='sleep_duration_in_h', bottom=df['s.s.start_time_time'], ax=ax1)
+        ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
 
-    # when I should never sleep
-    midday = 14
-    time_zone_delay = 2
-    ser_h = df['s.s.start_time'].dt.hour + time_zone_delay - midday
-    ser_h = np.where(ser_h < 0, ser_h + 24, ser_h) + midday - 24
-    df['s.s.start_time_time'] = ser_h + df['s.s.start_time'].dt.minute / 60
-
-    fig, (ax1, ax2) = plt.subplots(2, 1)
-    df.plot(kind='bar', x='s.s.start_time_date', y='sleep_duration_in_h', bottom=df['s.s.start_time_time'], ax=ax1)
-    ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
-
-    df.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
-
-    # plt.show()
-    return df
+        df.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
+        return df
 
 
 def get_exercise_table():
@@ -145,12 +186,6 @@ def get_exercise_table():
         df[col] = pd.to_datetime(df[col])
     df.sort_values(by='s.e.start_time', inplace=True)
     return df
-
-
-def get_json_file_name(hash_data, data_type):
-    starting_letter = hash_data[0]
-    return os.path.join(os.path.dirname(__file__), 'data', 'jsons', manipulate_data_type(data_type),
-                        str(starting_letter), hash_data)
 
 
 def get_json_data(hash_data, data_type):
@@ -252,9 +287,14 @@ def play_with_heart_rate_data():
 
 
 def main():
-    play_with_sleep_data()
-    play_with_exercise_data()
-    play_with_heart_rate_data()
+    direct = os.path.join(os.path.dirname(__file__), 'data')
+    sleep = Sleep(direct)
+    sleep.play_with_sleep_data()
+    # play_with_sleep_data()
+    # play_with_exercise_data()
+    # play_with_heart_rate_data()
+
+    plt.show()
 
 
 if __name__ == '__main__':
