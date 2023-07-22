@@ -82,29 +82,29 @@ def get_sleep_data_table():
 
 
 def play_with_sleep_data():
-    df0 = get_sleep_data_table()
+    df_comb = get_data('sleep_combined')
+    df_goal = get_data('sleep_goal')
 
-    df2 = get_data('sleep_combined')
-    df3 = get_data('sleep_goal')
+    df = get_sleep_data_table()
 
-    df0['sleep_duration_in_h'] = df0['sleep_duration'] / 60
-    df0['s.s.start_time_date'] = df0['s.s.start_time'].dt.date
+    df['sleep_duration_in_h'] = df['sleep_duration'] / 60
+    df['s.s.start_time_date'] = df['s.s.start_time'].dt.date
 
     # when I should never sleep
     midday = 14
     time_zone_delay = 2
-    ser_h = df0['s.s.start_time'].dt.hour + time_zone_delay - midday
+    ser_h = df['s.s.start_time'].dt.hour + time_zone_delay - midday
     ser_h = np.where(ser_h < 0, ser_h + 24, ser_h) + midday - 24
-    df0['s.s.start_time_time'] = ser_h + df0['s.s.start_time'].dt.minute / 60
+    df['s.s.start_time_time'] = ser_h + df['s.s.start_time'].dt.minute / 60
 
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    df0.plot(kind='bar', x='s.s.start_time_date', y='sleep_duration_in_h', bottom=df0['s.s.start_time_time'], ax=ax1)
-    ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df0), colors=['r', 'r'])
+    df.plot(kind='bar', x='s.s.start_time_date', y='sleep_duration_in_h', bottom=df['s.s.start_time_time'], ax=ax1)
+    ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
 
-    df0.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
+    df.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
 
     # plt.show()
-    return df0
+    return df
 
 
 def get_exercise_table():
@@ -147,10 +147,14 @@ def play_with_exercise_data():
     df_swim_outdoor = df[df['s.e.exercise_type'] == 14001]
     15002
 
-    df_run['s.e.max_speed_kmh'] = df_run['s.e.max_speed'] * 3.6
+    df_run['s.e.mean_speed_kmph'] = df_run['s.e.mean_speed'] * 3.6
+    df_run['s.e.max_speed_kmh'] = df_run['s.e.max_speed'] * 3.6 - df_run['s.e.mean_speed_kmph']
 
     df_run['s.e.start_time_date'] = df_run['s.e.start_time'].dt.date
-    df_run.plot(kind='bar', x='s.e.start_time_date', y='s.e.max_speed_kmh')
+    # df_run.plot(kind='bar', x='s.e.start_time_date', y='s.e.max_speed_kmh')
+    df_plot = df_run[['s.e.mean_speed_kmph', 's.e.max_speed_kmh', 's.e.start_time_date']]
+    df_plot.set_index('s.e.start_time_date', inplace=True)
+    df_plot.plot.bar(stacked=True)
 
     return df
 
