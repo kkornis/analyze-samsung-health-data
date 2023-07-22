@@ -14,6 +14,8 @@ def my_lambda(x):
         x = 's.s.' + x[25:]
     if x.startswith('com.samsung.health.exercise.'):
         x = 's.e.' + x[28:]
+    if x.startswith('com.samsung.health.heart_rate.'):
+        x = 's.h.' + x[30:]
     return x
 
 
@@ -120,12 +122,49 @@ def play_with_exercise_data():
     df_cycling = df[df['s.e.exercise_type'] == 11007]
     df_hike = df[df['s.e.exercise_type'] == 13001]
     df_swim_outdoor = df[df['s.e.exercise_type'] == 14001]
+    15002
 
     df_run['s.e.max_speed_kmh'] = df_run['s.e.max_speed'] * 3.6
 
     df_run['s.e.start_time_date'] = df_run['s.e.start_time'].dt.date
     df_run.plot(kind='bar', x='s.e.start_time_date', y='s.e.max_speed_kmh')
 
+    return df
+
+
+def get_heart_rate_table(time_stamp):
+    data_name = 'tracker.heart_rate.' + time_stamp
+    df = get_data(data_name)
+    cols = df.columns
+    dates_cols = ['s.h.start_time', 's.h.end_time']
+    meaningful_cols = ['s.h.min', 's.h.max', 's.h.heart_rate', 's.h.heart_beat_count']
+    semi_meaningful_cols = ['s.h.comment']
+    meaningless_col = []
+    empty_cols = ['source', 's.h.custom']
+    id_cols = ['tag_id', 's.h.binning_data', 's.h.update_time', 's.h.create_time',
+               's.h.time_offset', 's.h.deviceuuid']
+    col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
+    remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
+    col_types = col_types + [remaining]
+    cols = sum(col_types, [])
+    df = df[cols]
+    for col in meaningful_cols + meaningless_col:
+        df[col] = pd.to_numeric(df[col])
+    for col in dates_cols:
+        df[col] = pd.to_datetime(df[col])
+    df.sort_values(by='s.h.start_time', inplace=True)
+    return df
+
+
+def play_with_heart_rate_data():
+    df = get_heart_rate_table('20230717112944')
+    df['diff'] = df['s.h.max'] - df['s.h.min']
+    df['s.h.start_time_date'] = df['s.h.start_time'].dt.date
+
+    fig, ax = plt.subplots(1, 1)
+    # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.h.min'])
+    df.plot(x='s.h.start_time', y=['s.h.heart_rate', 's.h.min', 's.h.max'], ax=ax)
+    ax.hlines(y=50, xmin=df['s.h.start_time'].iloc[0], xmax=df['s.h.start_time'].iloc[len(df)-1], colors='r')
     plt.show()
     return df
 
@@ -133,6 +172,7 @@ def play_with_exercise_data():
 def main():
     play_with_sleep_data()
     play_with_exercise_data()
+    play_with_heart_rate_data()
 
 
 if __name__ == '__main__':
