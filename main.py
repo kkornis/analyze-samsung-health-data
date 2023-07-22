@@ -250,41 +250,44 @@ class Exercise(HealthDataTable):
         return df
 
 
-def get_heart_rate_table():
-    data_name = 'tracker.heart_rate'
-    df = get_data(data_name)
-    cols = df.columns
-    dates_cols = ['s.h.start_time', 's.h.end_time']
-    meaningful_cols = ['s.h.min', 's.h.max', 's.h.heart_rate', 's.h.heart_beat_count']
-    semi_meaningful_cols = ['s.h.comment']
-    meaningless_col = []
-    empty_cols = ['source', 's.h.custom']
-    id_cols = ['tag_id', 's.h.binning_data', 's.h.update_time', 's.h.create_time',
-               's.h.time_offset', 's.h.deviceuuid']
-    col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
-    remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
-    col_types = col_types + [remaining]
-    cols = sum(col_types, [])
-    df = df[cols]
-    for col in meaningful_cols + meaningless_col:
-        df[col] = pd.to_numeric(df[col])
-    for col in dates_cols:
-        df[col] = pd.to_datetime(df[col])
-    df.sort_values(by='s.h.start_time', inplace=True)
-    return df
+class HeartRate(HealthDataTable):
+    csv_data_name = 'tracker.heart_rate'
 
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
 
-def play_with_heart_rate_data():
-    df = get_heart_rate_table()
-    df['diff'] = df['s.h.max'] - df['s.h.min']
-    df['s.h.start_time_date'] = df['s.h.start_time'].dt.date
+    def get_formatted_df(self):
+        df = self.get_data()
+        cols = df.columns
+        dates_cols = ['s.h.start_time', 's.h.end_time']
+        meaningful_cols = ['s.h.min', 's.h.max', 's.h.heart_rate', 's.h.heart_beat_count']
+        semi_meaningful_cols = ['s.h.comment']
+        meaningless_col = []
+        empty_cols = ['source', 's.h.custom']
+        id_cols = ['tag_id', 's.h.binning_data', 's.h.update_time', 's.h.create_time',
+                   's.h.time_offset', 's.h.deviceuuid']
+        col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
+        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
+        col_types = col_types + [remaining]
+        cols = sum(col_types, [])
+        df = df[cols]
+        for col in meaningful_cols + meaningless_col:
+            df[col] = pd.to_numeric(df[col])
+        for col in dates_cols:
+            df[col] = pd.to_datetime(df[col])
+        df.sort_values(by='s.h.start_time', inplace=True)
+        return df
 
-    fig, ax = plt.subplots(1, 1)
-    # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.h.min'])
-    df.plot(x='s.h.start_time', y=['s.h.heart_rate', 's.h.min', 's.h.max'], ax=ax)
-    ax.hlines(y=50, xmin=df['s.h.start_time'].iloc[0], xmax=df['s.h.start_time'].iloc[len(df)-1], colors='r')
-    plt.show()
-    return df
+    def play_with_heart_rate_data(self):
+        df = self.get_formatted_df()
+        df['diff'] = df['s.h.max'] - df['s.h.min']
+        df['s.h.start_time_date'] = df['s.h.start_time'].dt.date
+
+        fig, ax = plt.subplots(1, 1)
+        # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.h.min'])
+        df.plot(x='s.h.start_time', y=['s.h.heart_rate', 's.h.min', 's.h.max'], ax=ax)
+        ax.hlines(y=50, xmin=df['s.h.start_time'].iloc[0], xmax=df['s.h.start_time'].iloc[len(df)-1], colors='r')
+        return df
 
 
 def main():
@@ -296,7 +299,8 @@ def main():
     exercise = Exercise(direct)
     exercise.play_with_exercise_data()
 
-    # play_with_heart_rate_data()
+    heart_rate = HeartRate(direct)
+    heart_rate.play_with_heart_rate_data()
 
     plt.show()
 
