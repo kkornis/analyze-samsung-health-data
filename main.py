@@ -141,7 +141,8 @@ class Sleep(HealthDataTable):
         df = self.get_data()
         cols = df.columns
         dates_cols = ['s.s.start_time', 's.s.end_time']
-        meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle', 'efficiency', 'sleep_duration']
+        meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle',
+                           'efficiency', 'sleep_duration']
         semi_meaningful_cols = ['factor_' + str(i).zfill(2) for i in range(1, 11)]
         meaningless_col = ['has_sleep_data', 'data_version']
         empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
@@ -193,8 +194,8 @@ class Exercise(HealthDataTable):
                            's.e.min_altitude', 's.e.max_altitude', 's.e.mean_heart_rate', 's.e.count', 's.e.distance',
                            's.e.calorie', 's.e.mean_speed', 's.e.altitude_gain', 's.e.sweat_loss', 's.e.min_heart_rate',
                            's.e.max_heart_rate', 's.e.max_speed', 's.e.mean_cadence', 's.e.max_cadence',
-                           's.e.decline_distance', 's.e.vo2_max', 's.e.incline_distance', 'source_type', 'reward_status',
-                           's.e.count_type']
+                           's.e.decline_distance', 's.e.vo2_max', 's.e.incline_distance', 'source_type',
+                           'reward_status', 's.e.count_type']
         semi_meaningful_cols = ['s.e.comment']
         meaningless_col = []
         empty_cols = ['mission_value', 'subset_data', 'routine_datauuid', 'pace_info_id', 'pace_live_data']
@@ -215,8 +216,9 @@ class Exercise(HealthDataTable):
     def play_with_exercise_data(self):
         # mean_speed is in m/s
         df = self.get_formatted_df()
-        type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike', 14001: 'swim_outdoor',
-                    15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton', 4005: 'handball'}
+        type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike',
+                    14001: 'swim_outdoor', 15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton',
+                    4005: 'handball'}
         df_walk = df[df['s.e.exercise_type'] == 1001]
         df_run = df[df['s.e.exercise_type'] == 1002]
         df_pull_ups = df[df['s.e.exercise_type'] == 10005]
