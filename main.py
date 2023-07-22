@@ -203,12 +203,12 @@ def play_with_exercise_data():
 
     line_ind = 0
 
-    data1 = get_json_data(df_run['live_data_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
-    data2 = get_json_data(df_run['sensing_status'].iloc[line_ind], 'com.samsung.shealth.exercise')
-    data3 = get_json_data(df_run['location_data_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
-    data4 = get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 'com.samsung.shealth.exercise')
-    data5 = get_json_data(df_run['s.e.location_data'].iloc[line_ind], 'com.samsung.shealth.exercise')
-    data6 = get_json_data(df_run['s.e.live_data'].iloc[line_ind], 'com.samsung.shealth.exercise')
+    data1 = get_json_data(df_run['live_data_internal'].iloc[line_ind], 's.exercise')
+    data2 = get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
+    data3 = get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
+    data4 = get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
+    data5 = get_json_data(df_run['s.e.location_data'].iloc[line_ind], 's.exercise')
+    data6 = get_json_data(df_run['s.e.live_data'].iloc[line_ind], 's.exercise')
     # data7 = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
 
     return df
