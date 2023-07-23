@@ -56,7 +56,7 @@ class HealthDataTable:
     @staticmethod
     def get_json_file_name(hash_data, data_type):
         starting_letter = hash_data[0]
-        return os.path.join(os.path.dirname(__file__), 'data', 'jsons', HealthDataTable.manipulate_data_type(data_type),
+        return os.path.join(HealthDataTable.data_dir, 'jsons', HealthDataTable.manipulate_data_type(data_type),
                             str(starting_letter), hash_data)
 
     @staticmethod
