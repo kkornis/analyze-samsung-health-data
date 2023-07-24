@@ -35,6 +35,13 @@ def rename_files():
 class HealthDataTable:
     data_dir = None
     csv_data_name = None
+    index_col = 's.start_time'
+    dates_cols = [index_col, 's.end_time']
+    primary_columns = []
+    secondary_numeric_columns = []
+    secondary_str_columns = []
+    empty_cols = []
+    id_cols = []
 
     def __init__(self, data_dir: str):
         HealthDataTable.data_dir = data_dir
@@ -79,7 +86,20 @@ class HealthDataTable:
         return self.get_data()
 
     def get_formatted_df(self) -> pd.DataFrame:
-        raise NotImplementedError
+        df = self.get_data()
+        cols = df.columns
+        col_types = [self.dates_cols, self.primary_columns, self.secondary_numeric_columns, self.secondary_str_columns,
+                     self.empty_cols, self.id_cols]
+        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
+        col_types = col_types + [remaining]
+        cols = sum(col_types, [])
+        df = df[cols]
+        for col in self.primary_columns + self.secondary_numeric_columns:
+            df[col] = pd.to_numeric(df[col])
+        for col in self.dates_cols:
+            df[col] = pd.to_datetime(df[col])
+        df.sort_values(by=self.index_col, inplace=True)
+        return df
 
     @staticmethod
     def get_json_data(hash_data, data_type):
@@ -134,30 +154,15 @@ class SleepGoal(HealthDataTable):
 class Sleep(HealthDataTable):
     csv_data_name = 'sleep'
 
+    primary_columns = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle',
+                       'efficiency', 'sleep_duration']
+    secondary_numeric_columns = ['factor_' + str(i).zfill(2) for i in range(1, 11)] + ['has_sleep_data', 'data_version']
+    secondary_str_columns = []
+    empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
+    id_cols = ['combined_id', 'extra_data']
+
     def __init__(self, data_dir: str):
         super().__init__(data_dir)
-
-    def get_formatted_df(self):
-        df = self.get_data()
-        cols = df.columns
-        dates_cols = ['s.start_time', 's.end_time']
-        meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle',
-                           'efficiency', 'sleep_duration']
-        semi_meaningful_cols = ['factor_' + str(i).zfill(2) for i in range(1, 11)]
-        meaningless_col = ['has_sleep_data', 'data_version']
-        empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
-        id_cols = ['combined_id', 'extra_data']
-        col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
-        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
-        col_types = col_types + [remaining]
-        cols = sum(col_types, [])
-        df = df[cols]
-        for col in meaningful_cols + semi_meaningful_cols + meaningless_col:
-            df[col] = pd.to_numeric(df[col])
-        for col in dates_cols:
-            df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.start_time', inplace=True)
-        return df
 
     def play_with_sleep_data(self):
         df = self.get_formatted_df()
@@ -189,35 +194,20 @@ class Sleep(HealthDataTable):
 class Exercise(HealthDataTable):
     csv_data_name = 'exercise'
 
+    primary_columns = ['total_calorie', 'heart_rate_sample_count', 's.duration', 's.exercise_type',
+                       's.min_altitude', 's.max_altitude', 's.mean_heart_rate', 's.count', 's.distance',
+                       's.calorie', 's.mean_speed', 's.altitude_gain', 's.sweat_loss', 's.min_heart_rate',
+                       's.max_heart_rate', 's.max_speed', 's.mean_cadence', 's.max_cadence',
+                       's.decline_distance', 's.vo2_max', 's.incline_distance', 'source_type',
+                       'reward_status', 's.count_type']
+    secondary_numeric_columns = []
+    secondary_str_columns = ['s.comment']
+    empty_cols = ['mission_value', 'subset_data', 'routine_datauuid', 'pace_info_id', 'pace_live_data']
+    id_cols = ['live_data_internal', 'sensing_status', 'location_data_internal', 'additional_internal',
+               's.location_data', 's.live_data']
+
     def __init__(self, data_dir: str):
         super().__init__(data_dir)
-
-    def get_formatted_df(self):
-        df = self.get_data()
-        cols = df.columns
-        dates_cols = ['s.start_time', 's.end_time']
-        meaningful_cols = ['total_calorie', 'heart_rate_sample_count', 's.duration', 's.exercise_type',
-                           's.min_altitude', 's.max_altitude', 's.mean_heart_rate', 's.count', 's.distance',
-                           's.calorie', 's.mean_speed', 's.altitude_gain', 's.sweat_loss', 's.min_heart_rate',
-                           's.max_heart_rate', 's.max_speed', 's.mean_cadence', 's.max_cadence',
-                           's.decline_distance', 's.vo2_max', 's.incline_distance', 'source_type',
-                           'reward_status', 's.count_type']
-        semi_meaningful_cols = ['s.comment']
-        meaningless_col = []
-        empty_cols = ['mission_value', 'subset_data', 'routine_datauuid', 'pace_info_id', 'pace_live_data']
-        id_cols = ['live_data_internal', 'sensing_status', 'location_data_internal', 'additional_internal',
-                   's.location_data', 's.live_data']
-        col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
-        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
-        col_types = col_types + [remaining]
-        cols = sum(col_types, [])
-        df = df[cols]
-        for col in meaningful_cols + meaningless_col:
-            df[col] = pd.to_numeric(df[col])
-        for col in dates_cols:
-            df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.start_time', inplace=True)
-        return df
 
     def play_with_exercise_data(self):
         # mean_speed is in m/s
@@ -267,30 +257,15 @@ class Exercise(HealthDataTable):
 class HeartRate(HealthDataTable):
     csv_data_name = 'tracker.heart_rate'
 
+    primary_columns = ['s.min', 's.max', 's.heart_rate', 's.heart_beat_count']
+    secondary_str_columns = ['s.comment']
+    meaningless_col = []
+    empty_cols = ['source', 's.custom']
+    id_cols = ['tag_id', 's.binning_data', 's.update_time', 's.create_time',
+               's.time_offset', 's.deviceuuid']
+
     def __init__(self, data_dir: str):
         super().__init__(data_dir)
-
-    def get_formatted_df(self):
-        df = self.get_data()
-        cols = df.columns
-        dates_cols = ['s.start_time', 's.end_time']
-        meaningful_cols = ['s.min', 's.max', 's.heart_rate', 's.heart_beat_count']
-        semi_meaningful_cols = ['s.comment']
-        meaningless_col = []
-        empty_cols = ['source', 's.custom']
-        id_cols = ['tag_id', 's.binning_data', 's.update_time', 's.create_time',
-                   's.time_offset', 's.deviceuuid']
-        col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
-        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
-        col_types = col_types + [remaining]
-        cols = sum(col_types, [])
-        df = df[cols]
-        for col in meaningful_cols + meaningless_col:
-            df[col] = pd.to_numeric(df[col])
-        for col in dates_cols:
-            df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.start_time', inplace=True)
-        return df
 
     def play_with_heart_rate_data(self):
         df = self.get_formatted_df()
