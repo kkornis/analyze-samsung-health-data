@@ -140,7 +140,7 @@ class Sleep(HealthDataTable):
     def get_formatted_df(self):
         df = self.get_data()
         cols = df.columns
-        dates_cols = ['s.s.start_time', 's.s.end_time']
+        dates_cols = ['s.start_time', 's.end_time']
         meaningful_cols = ['mental_recovery', 'physical_recovery', 'sleep_score', 'movement_awakening', 'sleep_cycle',
                            'efficiency', 'sleep_duration']
         semi_meaningful_cols = ['factor_' + str(i).zfill(2) for i in range(1, 11)]
@@ -156,33 +156,33 @@ class Sleep(HealthDataTable):
             df[col] = pd.to_numeric(df[col])
         for col in dates_cols:
             df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.s.start_time', inplace=True)
+        df.sort_values(by='s.start_time', inplace=True)
         return df
 
     def play_with_sleep_data(self):
         df = self.get_formatted_df()
 
         df['sleep_duration_in_h'] = df['sleep_duration'] / 60
-        df['s.s.start_time_date'] = df['s.s.start_time'].dt.date
+        df['s.start_time_date'] = df['s.start_time'].dt.date
 
         # when I should never sleep
         midday = 14
         time_zone_delay = 2
-        ser_h = df['s.s.start_time'].dt.hour + time_zone_delay - midday
+        ser_h = df['s.start_time'].dt.hour + time_zone_delay - midday
         ser_h = np.where(ser_h < 0, ser_h + 24, ser_h) + midday - 24
-        df['s.s.start_time_time'] = ser_h + df['s.s.start_time'].dt.minute / 60
+        df['s.start_time_time'] = ser_h + df['s.start_time'].dt.minute / 60
 
         fig, (ax1, ax2) = plt.subplots(2, 1)
-        df.plot(kind='bar', x='s.s.start_time_date', y='sleep_duration_in_h', bottom=df['s.s.start_time_time'], ax=ax1)
+        df.plot(kind='bar', x='s.start_time_date', y='sleep_duration_in_h', bottom=df['s.start_time_time'], ax=ax1)
         ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
 
-        df.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
+        df.plot(kind='bar', x='s.start_time_date', y='sleep_score', ax=ax2, color='g')
         return df
 
     @staticmethod
     def simplify_column(x):
         if x.startswith('com.samsung.health.sleep.'):
-            x = 's.s.' + x[25:]
+            x = 's.' + x[25:]
         return x
 
 
@@ -195,18 +195,18 @@ class Exercise(HealthDataTable):
     def get_formatted_df(self):
         df = self.get_data()
         cols = df.columns
-        dates_cols = ['s.e.start_time', 's.e.end_time']
-        meaningful_cols = ['total_calorie', 'heart_rate_sample_count', 's.e.duration', 's.e.exercise_type',
-                           's.e.min_altitude', 's.e.max_altitude', 's.e.mean_heart_rate', 's.e.count', 's.e.distance',
-                           's.e.calorie', 's.e.mean_speed', 's.e.altitude_gain', 's.e.sweat_loss', 's.e.min_heart_rate',
-                           's.e.max_heart_rate', 's.e.max_speed', 's.e.mean_cadence', 's.e.max_cadence',
-                           's.e.decline_distance', 's.e.vo2_max', 's.e.incline_distance', 'source_type',
-                           'reward_status', 's.e.count_type']
-        semi_meaningful_cols = ['s.e.comment']
+        dates_cols = ['s.start_time', 's.end_time']
+        meaningful_cols = ['total_calorie', 'heart_rate_sample_count', 's.duration', 's.exercise_type',
+                           's.min_altitude', 's.max_altitude', 's.mean_heart_rate', 's.count', 's.distance',
+                           's.calorie', 's.mean_speed', 's.altitude_gain', 's.sweat_loss', 's.min_heart_rate',
+                           's.max_heart_rate', 's.max_speed', 's.mean_cadence', 's.max_cadence',
+                           's.decline_distance', 's.vo2_max', 's.incline_distance', 'source_type',
+                           'reward_status', 's.count_type']
+        semi_meaningful_cols = ['s.comment']
         meaningless_col = []
         empty_cols = ['mission_value', 'subset_data', 'routine_datauuid', 'pace_info_id', 'pace_live_data']
         id_cols = ['live_data_internal', 'sensing_status', 'location_data_internal', 'additional_internal',
-                   's.e.location_data', 's.e.live_data']
+                   's.location_data', 's.live_data']
         col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
         remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
         col_types = col_types + [remaining]
@@ -216,7 +216,7 @@ class Exercise(HealthDataTable):
             df[col] = pd.to_numeric(df[col])
         for col in dates_cols:
             df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.e.start_time', inplace=True)
+        df.sort_values(by='s.start_time', inplace=True)
         return df
 
     def play_with_exercise_data(self):
@@ -225,24 +225,24 @@ class Exercise(HealthDataTable):
         type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike',
                     14001: 'swim_outdoor', 15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton',
                     4005: 'handball'}
-        df_walk = df[df['s.e.exercise_type'] == 1001]
-        df_run = df[df['s.e.exercise_type'] == 1002]
-        df_pull_ups = df[df['s.e.exercise_type'] == 10005]
-        df_cycling = df[df['s.e.exercise_type'] == 11007]
-        df_hike = df[df['s.e.exercise_type'] == 13001]
-        df_swim_outdoor = df[df['s.e.exercise_type'] == 14001]
-        df_weight_machines = df[df['s.e.exercise_type'] == 15002]
-        df_push_up = df[df['s.e.exercise_type'] == 10004]
-        df_badminton = df[df['s.e.exercise_type'] == 6003]
-        df_handball = df[df['s.e.exercise_type'] == 4005]
+        df_walk = df[df['s.exercise_type'] == 1001]
+        df_run = df[df['s.exercise_type'] == 1002]
+        df_pull_ups = df[df['s.exercise_type'] == 10005]
+        df_cycling = df[df['s.exercise_type'] == 11007]
+        df_hike = df[df['s.exercise_type'] == 13001]
+        df_swim_outdoor = df[df['s.exercise_type'] == 14001]
+        df_weight_machines = df[df['s.exercise_type'] == 15002]
+        df_push_up = df[df['s.exercise_type'] == 10004]
+        df_badminton = df[df['s.exercise_type'] == 6003]
+        df_handball = df[df['s.exercise_type'] == 4005]
 
-        df_run['s.e.mean_speed_kmph'] = df_run['s.e.mean_speed'] * 3.6
-        df_run['s.e.max_speed_kmh'] = df_run['s.e.max_speed'] * 3.6 - df_run['s.e.mean_speed_kmph']
+        df_run['s.mean_speed_kmph'] = df_run['s.mean_speed'] * 3.6
+        df_run['s.max_speed_kmh'] = df_run['s.max_speed'] * 3.6 - df_run['s.mean_speed_kmph']
 
-        df_run['s.e.start_time_date'] = df_run['s.e.start_time'].dt.date
-        # df_run.plot(kind='bar', x='s.e.start_time_date', y='s.e.max_speed_kmh')
-        df_plot = df_run[['s.e.mean_speed_kmph', 's.e.max_speed_kmh', 's.e.start_time_date']]
-        df_plot.set_index('s.e.start_time_date', inplace=True)
+        df_run['s.start_time_date'] = df_run['s.start_time'].dt.date
+        # df_run.plot(kind='bar', x='s.start_time_date', y='s.max_speed_kmh')
+        df_plot = df_run[['s.mean_speed_kmph', 's.max_speed_kmh', 's.start_time_date']]
+        df_plot.set_index('s.start_time_date', inplace=True)
         df_plot.plot.bar(stacked=True)
 
         line_ind = 0
@@ -251,8 +251,8 @@ class Exercise(HealthDataTable):
         data2 = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
         data3 = self.get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
         data4 = self.get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
-        data5 = self.get_json_data(df_run['s.e.location_data'].iloc[line_ind], 's.exercise')
-        data6 = self.get_json_data(df_run['s.e.live_data'].iloc[line_ind], 's.exercise')
+        data5 = self.get_json_data(df_run['s.location_data'].iloc[line_ind], 's.exercise')
+        data6 = self.get_json_data(df_run['s.live_data'].iloc[line_ind], 's.exercise')
         # data7 = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
 
         return df
@@ -260,7 +260,7 @@ class Exercise(HealthDataTable):
     @staticmethod
     def simplify_column(x):
         if x.startswith('com.samsung.health.exercise.'):
-            x = 's.e.' + x[28:]
+            x = 's.' + x[28:]
         return x
 
 
@@ -273,13 +273,13 @@ class HeartRate(HealthDataTable):
     def get_formatted_df(self):
         df = self.get_data()
         cols = df.columns
-        dates_cols = ['s.h.start_time', 's.h.end_time']
-        meaningful_cols = ['s.h.min', 's.h.max', 's.h.heart_rate', 's.h.heart_beat_count']
-        semi_meaningful_cols = ['s.h.comment']
+        dates_cols = ['s.start_time', 's.end_time']
+        meaningful_cols = ['s.min', 's.max', 's.heart_rate', 's.heart_beat_count']
+        semi_meaningful_cols = ['s.comment']
         meaningless_col = []
-        empty_cols = ['source', 's.h.custom']
-        id_cols = ['tag_id', 's.h.binning_data', 's.h.update_time', 's.h.create_time',
-                   's.h.time_offset', 's.h.deviceuuid']
+        empty_cols = ['source', 's.custom']
+        id_cols = ['tag_id', 's.binning_data', 's.update_time', 's.create_time',
+                   's.time_offset', 's.deviceuuid']
         col_types = [dates_cols, meaningful_cols, semi_meaningful_cols, meaningless_col, empty_cols, id_cols]
         remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
         col_types = col_types + [remaining]
@@ -289,24 +289,24 @@ class HeartRate(HealthDataTable):
             df[col] = pd.to_numeric(df[col])
         for col in dates_cols:
             df[col] = pd.to_datetime(df[col])
-        df.sort_values(by='s.h.start_time', inplace=True)
+        df.sort_values(by='s.start_time', inplace=True)
         return df
 
     def play_with_heart_rate_data(self):
         df = self.get_formatted_df()
-        df['diff'] = df['s.h.max'] - df['s.h.min']
-        df['s.h.start_time_date'] = df['s.h.start_time'].dt.date
+        df['diff'] = df['s.max'] - df['s.min']
+        df['s.start_time_date'] = df['s.start_time'].dt.date
 
         fig, ax = plt.subplots(1, 1)
-        # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.h.min'])
-        df.plot(x='s.h.start_time', y=['s.h.heart_rate', 's.h.min', 's.h.max'], ax=ax)
-        ax.hlines(y=50, xmin=df['s.h.start_time'].iloc[0], xmax=df['s.h.start_time'].iloc[len(df)-1], colors='r')
+        # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
+        df.plot(x='s.start_time', y=['s.heart_rate', 's.min', 's.max'], ax=ax)
+        ax.hlines(y=50, xmin=df['s.start_time'].iloc[0], xmax=df['s.start_time'].iloc[len(df)-1], colors='r')
         return df
 
     @staticmethod
     def simplify_column(x):
         if x.startswith('com.samsung.health.heart_rate.'):
-            x = 's.h.' + x[30:]
+            x = 's.' + x[30:]
         return x
 
 
