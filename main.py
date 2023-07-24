@@ -35,6 +35,7 @@ def rename_files():
 class HealthDataTable:
     data_dir = None
     csv_data_name = None
+
     index_col = 's.start_time'
     dates_cols = [index_col, 's.end_time']
     primary_columns = []
@@ -42,6 +43,8 @@ class HealthDataTable:
     secondary_str_columns = []
     empty_cols = []
     id_cols = []
+
+    prefix = 's.'
 
     def __init__(self, data_dir: str):
         HealthDataTable.data_dir = data_dir
@@ -67,12 +70,12 @@ class HealthDataTable:
                             str(starting_letter), hash_data)
 
     @staticmethod
-    def simplify_column(x: str) -> str:
+    def simplify_column(col_name: str) -> str:
         raise NotImplementedError
 
     @classmethod
     def get_data(cls) -> pd.DataFrame:
-        file_name = HealthDataTable.get_csv_file_name('s.' + cls.csv_data_name)
+        file_name = HealthDataTable.get_csv_file_name(cls.prefix + cls.csv_data_name)
         file = open(file_name, "r")
         txt = file.read()
         # txt.replace('\n,', '\n')
@@ -185,10 +188,10 @@ class Sleep(HealthDataTable):
         return df
 
     @staticmethod
-    def simplify_column(x):
-        if x.startswith('com.samsung.health.sleep.'):
-            x = 's.' + x[25:]
-        return x
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.sleep.'):
+            col_name = 's.' + col_name[25:]
+        return col_name
 
 
 class Exercise(HealthDataTable):
@@ -248,10 +251,10 @@ class Exercise(HealthDataTable):
         return df
 
     @staticmethod
-    def simplify_column(x):
-        if x.startswith('com.samsung.health.exercise.'):
-            x = 's.' + x[28:]
-        return x
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.exercise.'):
+            col_name = 's.' + col_name[28:]
+        return col_name
 
 
 class HeartRate(HealthDataTable):
@@ -279,10 +282,40 @@ class HeartRate(HealthDataTable):
         return df
 
     @staticmethod
-    def simplify_column(x):
-        if x.startswith('com.samsung.health.heart_rate.'):
-            x = 's.' + x[30:]
-        return x
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.heart_rate.'):
+            col_name = 's.' + col_name[30:]
+        return col_name
+
+
+class Weight(HealthDataTable):
+    csv_data_name = 'weight'
+
+    index_col = 'start_time'
+    dates_cols = [index_col, 'update_time', 'create_time']
+    primary_columns = ['skeletal_muscle', 'skeletal_muscle_mass', 'fat_free', 'fat_free_mass', 'body_fat',
+                       'total_body_water', 'body_fat_mass', 'height', 'weight', 'basal_metabolic_rate']
+    secondary_str_columns = []
+    meaningless_col = []
+    empty_cols = ['vfa_level', 'custom', 'muscle_mass']
+    id_cols = ['datauuid']
+
+    prefix = ''
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
+
+    def play_with_weight_data(self):
+        df = self.get_formatted_df()
+        fig, ax = plt.subplots(1, 1)
+        # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
+        df.plot(x=self.index_col, y=['skeletal_muscle_mass', 'body_fat_mass', 'total_body_water', 'weight'], ax=ax)
+        # ax.hlines(y=50, xmin=df['start_time'].iloc[0], xmax=df['start_time'].iloc[len(df)-1], colors='r')
+        return df
+
+    @staticmethod
+    def simplify_column(col_name: str) -> str:
+        return col_name
 
 
 def main():
@@ -296,6 +329,9 @@ def main():
 
     heart_rate = HeartRate(direct)
     heart_rate.play_with_heart_rate_data()
+
+    weight = Weight(direct)
+    weight.play_with_weight_data()
 
     plt.show()
 
