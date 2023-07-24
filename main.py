@@ -307,9 +307,11 @@ class Weight(HealthDataTable):
 
     def play_with_weight_data(self):
         df = self.get_formatted_df()
+        df['s_body_fat_mass'] = df['body_fat_mass'] + 30
+        df['s_weight'] = df['weight'] - 30
         fig, ax = plt.subplots(1, 1)
         # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
-        df.plot(x=self.index_col, y=['skeletal_muscle_mass', 'body_fat_mass', 'total_body_water', 'weight'], ax=ax)
+        df.plot(x=self.index_col, y=['skeletal_muscle_mass', 's_body_fat_mass', 'total_body_water', 's_weight'], ax=ax)
         # ax.hlines(y=50, xmin=df['start_time'].iloc[0], xmax=df['start_time'].iloc[len(df)-1], colors='r')
         return df
 
