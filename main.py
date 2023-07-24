@@ -60,14 +60,8 @@ class HealthDataTable:
                             str(starting_letter), hash_data)
 
     @staticmethod
-    def my_lambda(x):
-        if x.startswith('com.samsung.health.sleep.'):
-            x = 's.s.' + x[25:]
-        if x.startswith('com.samsung.health.exercise.'):
-            x = 's.e.' + x[28:]
-        if x.startswith('com.samsung.health.heart_rate.'):
-            x = 's.h.' + x[30:]
-        return x
+    def simplify_column(x: str) -> str:
+        raise NotImplementedError
 
     @classmethod
     def get_data(cls) -> pd.DataFrame:
@@ -78,7 +72,7 @@ class HealthDataTable:
         lines = txt.split('\n')
 
         df = pd.DataFrame([line.split(',')[:-1] for line in lines[2:-1]], columns=lines[1].split(','))
-        df.rename(HealthDataTable.my_lambda, inplace=True, axis='columns')
+        df.rename(cls.simplify_column, inplace=True, axis='columns')
         return df
 
     def get_df(self) -> pd.DataFrame:
@@ -119,6 +113,12 @@ class SleepCombined(HealthDataTable):
 
     def get_formatted_df(self) -> pd.DataFrame:
         return self.get_df()
+
+    @staticmethod
+    def simplify_column(x):
+        if x.startswith('com.samsung.health.sleep.'):
+            x = 's.' + x[25:]
+        return x
 
 
 class SleepGoal(HealthDataTable):
@@ -178,6 +178,12 @@ class Sleep(HealthDataTable):
 
         df.plot(kind='bar', x='s.s.start_time_date', y='sleep_score', ax=ax2, color='g')
         return df
+
+    @staticmethod
+    def simplify_column(x):
+        if x.startswith('com.samsung.health.sleep.'):
+            x = 's.s.' + x[25:]
+        return x
 
 
 class Exercise(HealthDataTable):
@@ -251,6 +257,12 @@ class Exercise(HealthDataTable):
 
         return df
 
+    @staticmethod
+    def simplify_column(x):
+        if x.startswith('com.samsung.health.exercise.'):
+            x = 's.e.' + x[28:]
+        return x
+
 
 class HeartRate(HealthDataTable):
     csv_data_name = 'tracker.heart_rate'
@@ -290,6 +302,12 @@ class HeartRate(HealthDataTable):
         df.plot(x='s.h.start_time', y=['s.h.heart_rate', 's.h.min', 's.h.max'], ax=ax)
         ax.hlines(y=50, xmin=df['s.h.start_time'].iloc[0], xmax=df['s.h.start_time'].iloc[len(df)-1], colors='r')
         return df
+
+    @staticmethod
+    def simplify_column(x):
+        if x.startswith('com.samsung.health.heart_rate.'):
+            x = 's.h.' + x[30:]
+        return x
 
 
 def main():
