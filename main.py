@@ -9,7 +9,7 @@ import json
 as_of_date = '20230722102693'
 
 
-def mv_files():
+def mv_files(data_direct):
     direct = os.path.join(os.path.dirname(__file__), 'data')
     files = os.listdir(direct)
     files = [f for f in files if f.endswith('.csv')]
@@ -17,7 +17,7 @@ def mv_files():
     for file in files:
         joint_path = os.path.join('data', file)
         joint_new_path = joint_path[:-19] + '.csv'
-        os.system('git -C K:/Kristof/prg/analyze_heart_rate_data mv ' + joint_path + ' ' + joint_new_path)
+        os.system('git -C ' + data_direct + ' mv ' + joint_path + ' ' + joint_new_path)
 
 
 def rename_files():
