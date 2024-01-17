@@ -197,6 +197,51 @@ class Sleep(HealthDataTable):
         return col_name
 
 
+class Stress(HealthDataTable):
+    csv_data_name = 'stress'
+
+    all_cols_ordered = ['start_time', 'custom', 'binning_data', 'tag_id', 'update_time', 'create_time', 'max', 'min',
+                        'score', 'algorithm', 'time_offset', 'deviceuuid', 'comment', 'pkg_name', 'end_time',
+                        'datauuid', 'Unnamed: 16']
+
+    index_col = 'start_time'
+    dates_cols = [index_col, 'end_time']
+
+    primary_columns = ['max', 'min', 'score']
+    secondary_numeric_columns = []
+    secondary_str_columns = []
+    empty_cols = ['custom', 'algorithm', 'comment', 'Unnamed: 16']
+    id_cols = ['update_time', 'create_time', 'binning_data', 'time_offset', 'deviceuuid', 'pkg_name', 'datauuid']
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
+
+    def play_with_stress_data(self):
+        df = self.get_formatted_df()
+        if len(df) == 0:
+            return df
+
+        # when I should never sleep
+        midday = 14
+        time_zone_delay = 2
+        ser_h = df['start_time'].dt.hour + time_zone_delay - midday
+        ser_h = np.where(ser_h < 0, ser_h + 24, ser_h) + midday - 24
+        df['start_time_time'] = ser_h + df['start_time'].dt.minute / 60
+
+        fig, (ax1, ax2) = plt.subplots(2, 1)
+        df.plot(kind='line', x='start_time', y=['min', 'max'], ax=ax1)
+        # ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
+
+        df.plot(kind='bar', x='start_time', y='score', ax=ax2, color='g')
+        return df
+
+    @staticmethod
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.sleep.'):
+            col_name = 's.' + col_name[25:]
+        return col_name
+
+
 class Exercise(HealthDataTable):
     csv_data_name = 'exercise'
 
@@ -337,6 +382,9 @@ def main():
 
     weight = Weight(direct)
     weight.play_with_weight_data()
+
+    stress = Stress(direct)
+    stress.play_with_stress_data()
 
     plt.show()
 
