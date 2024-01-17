@@ -411,7 +411,6 @@ class Rewards(HealthDataTable):
 
 def main():
     direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data', 'data'))
-    # direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsunghealth_borosfruzsi_20230724205754'))
 
     sleep = Sleep(direct)
     sleep.play_with_sleep_data()
