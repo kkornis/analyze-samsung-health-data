@@ -46,6 +46,8 @@ class HealthDataTable:
 
     prefix = 's.'
 
+    timestamp = ''
+
     def __init__(self, data_dir: str):
         HealthDataTable.data_dir = data_dir
 
@@ -61,7 +63,8 @@ class HealthDataTable:
 
     @staticmethod
     def get_csv_file_name(data_type):
-        return os.path.join(HealthDataTable.data_dir, HealthDataTable.manipulate_data_type(data_type) + '.csv')
+        return os.path.join(HealthDataTable.data_dir, HealthDataTable.manipulate_data_type(data_type)
+                            + HealthDataTable.timestamp + '.csv')
 
     @staticmethod
     def get_json_file_name(hash_data, data_type):
