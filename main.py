@@ -384,6 +384,31 @@ class Weight(HealthDataTable):
         return col_name
 
 
+class Rewards(HealthDataTable):
+    csv_data_name = 'rewards'
+
+    index_col = 'start_time'
+    dates_cols = [index_col, 'end_time', 'update_time', 'create_time']
+    id_cols = ['datauuid']
+
+    def __init__(self, data_dir: str):
+        super().__init__(data_dir)
+
+    def play_with_rewards_data(self):
+        df = self.get_formatted_df()
+        df['s_body_fat_mass'] = df['body_fat_mass'] + 30
+        df['s_weight'] = df['weight'] - 30
+        fig, ax = plt.subplots(1, 1)
+        # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
+        df.plot(x=self.index_col, y=['skeletal_muscle_mass', 's_body_fat_mass', 'total_body_water', 's_weight'], ax=ax)
+        # ax.hlines(y=50, xmin=df['start_time'].iloc[0], xmax=df['start_time'].iloc[len(df)-1], colors='r')
+        return df
+
+    @staticmethod
+    def simplify_column(col_name: str) -> str:
+        return col_name
+
+
 def main():
     direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data', 'data'))
     # direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsunghealth_borosfruzsi_20230724205754'))
@@ -402,6 +427,9 @@ def main():
 
     stress = Stress(direct)
     stress.play_with_stress_data()
+
+    # rewards = Rewards(direct)
+    # rewards.play_with_rewards_data()
 
     plt.show()
 
