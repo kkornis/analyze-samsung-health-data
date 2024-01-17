@@ -3,21 +3,25 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import json
+import datetime as dt
+import io
 
 
-'''The data is updated at 20230722102693'''
-as_of_date = '20230722102693'
-
-
-def mv_files(data_direct):
-    direct = os.path.join(os.path.dirname(__file__), 'data')
+def mv_files(direct, old_timestamp: str, new_timestamp: str):
     files = os.listdir(direct)
     files = [f for f in files if f.endswith('.csv')]
+    if not all([f[-18:-4] == old_timestamp for f in files]):
+        for f in files:
+            if f[-18:-4] != old_timestamp:
+                print(f, f[-18:-4], old_timestamp)
+
+        raise ValueError
 
     for file in files:
-        joint_path = os.path.join('data', file)
-        joint_new_path = joint_path[:-19] + '.csv'
-        os.system('git -C ' + data_direct + ' mv ' + joint_path + ' ' + joint_new_path)
+        joint_new_path = file[:-18] + new_timestamp + '.csv'
+        command = 'git -C ' + direct + ' mv ' + file + ' ' + joint_new_path
+        print(command)
+        os.system(command)
 
 
 def rename_files():
@@ -43,10 +47,14 @@ class HealthDataTable:
     secondary_str_columns = []
     empty_cols = []
     id_cols = []
+    all_cols_ordered = []
 
     prefix = 's.'
 
     timestamp = ''
+
+    start_time = dt.datetime(2021, 7, 23, 15)
+    end_time = dt.datetime(2027, 7, 25, 5)
 
     def __init__(self, data_dir: str):
         HealthDataTable.data_dir = data_dir
@@ -84,7 +92,9 @@ class HealthDataTable:
         # txt.replace('\n,', '\n')
         lines = txt.split('\n')
 
-        df = pd.DataFrame([line.split(',')[:-1] for line in lines[2:-1]], columns=lines[1].split(','))
+        fline = lines[1] + ','
+        txt_new = '\n'.join([lines[0]] + [fline] + lines[2:])
+        df = pd.read_csv(io.StringIO(txt_new), skiprows=1)
         df.rename(cls.simplify_column, inplace=True, axis='columns')
         return df
 
@@ -104,7 +114,9 @@ class HealthDataTable:
             df[col] = pd.to_numeric(df[col])
         for col in self.dates_cols:
             df[col] = pd.to_datetime(df[col])
-        df.sort_values(by=self.index_col, inplace=True)
+        df.sort_values(by=self.index_col, inplace=True, ignore_index=True)
+        df = df[((df[self.index_col] > HealthDataTable.start_time) &
+                 (df[self.index_col] < HealthDataTable.end_time))]
         return df
 
     @staticmethod
@@ -172,6 +184,8 @@ class Sleep(HealthDataTable):
 
     def play_with_sleep_data(self):
         df = self.get_formatted_df()
+        if len(df) == 0:
+            return df
 
         df['sleep_duration_in_h'] = df['sleep_duration'] / 60
         df['s.start_time_date'] = df['s.start_time'].dt.date
@@ -263,6 +277,8 @@ class Exercise(HealthDataTable):
     def play_with_exercise_data(self):
         # mean_speed is in m/s
         df = self.get_formatted_df()
+        if len(df) == 0:
+            return df
         type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike',
                     14001: 'swim_outdoor', 15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton',
                     4005: 'handball'}
@@ -277,10 +293,10 @@ class Exercise(HealthDataTable):
         df_badminton = df[df['s.exercise_type'] == 6003]
         df_handball = df[df['s.exercise_type'] == 4005]
 
-        df_run['s.mean_speed_kmph'] = df_run['s.mean_speed'] * 3.6
-        df_run['s.max_speed_kmh'] = df_run['s.max_speed'] * 3.6 - df_run['s.mean_speed_kmph']
+        df_run.loc[:, 's.mean_speed_kmph'] = df_run['s.mean_speed'] * 3.6
+        df_run.loc[:, 's.max_speed_kmh'] = df_run['s.max_speed'] * 3.6 - df_run['s.mean_speed_kmph']
 
-        df_run['s.start_time_date'] = df_run['s.start_time'].dt.date
+        df_run.loc[:, 's.start_time_date'] = df_run['s.start_time'].dt.date
         # df_run.plot(kind='bar', x='s.start_time_date', y='s.max_speed_kmh')
         df_plot = df_run[['s.mean_speed_kmph', 's.max_speed_kmh', 's.start_time_date']]
         df_plot.set_index('s.start_time_date', inplace=True)
@@ -369,7 +385,8 @@ class Weight(HealthDataTable):
 
 
 def main():
-    direct = os.path.join(os.path.dirname(__file__), 'data')
+    direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data', 'data'))
+    # direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsunghealth_borosfruzsi_20230724205754'))
 
     sleep = Sleep(direct)
     sleep.play_with_sleep_data()
