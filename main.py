@@ -18,7 +18,7 @@ def mv_files(direct, old_timestamp: str, new_timestamp: str):
         raise ValueError
 
     for file in files:
-        joint_new_path = file[:-18] + new_timestamp + '.csv'
+        joint_new_path = file[:-19] + new_timestamp + '.csv'
         command = 'git -C ' + direct + ' mv ' + file + ' ' + joint_new_path
         print(command)
         os.system(command)
