@@ -25,8 +25,17 @@ def mv_files(direct, old_timestamp: str, new_timestamp: str):
 
 
 def rename_files():
-    direct = os.path.join(os.path.dirname(__file__), 'data')
-    files = os.listdir(direct)
+    extra_path = 'invalid'
+    direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data',
+                                          extra_path))
+    items = os.listdir(direct)
+    files = [item for item in items if os.path.isfile(os.path.join(direct, item))]
+    directories = [item for item in items if not os.path.isfile(os.path.join(direct, item))]
+    if not all([f.endswith('.csv') for f in files]):
+        print('Warning, unexpected file extension!')
+    if not len(directories) == 1 or directories[0] != 'jsons':
+        print('Warning, unexpected directories!')
+
     files = [f for f in files if f.endswith('.csv')]
 
     for file in files:
