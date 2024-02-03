@@ -8,6 +8,16 @@ import io
 
 
 def mv_files(direct, old_timestamp: str, new_timestamp: str):
+    """
+    This function helps git operations of the underlying data.
+    This is a deprecated function, not part of the normal workflow, no need to use it.
+
+    :param direct: input folder path
+    :param old_timestamp: timestamp to rename
+    :param new_timestamp: new addition to the filename, it should be ''
+    :return: None
+    """
+
     files = os.listdir(direct)
     files = [f for f in files if f.endswith('.csv')]
     if not all([f[-18:-4] == old_timestamp for f in files]):
@@ -24,8 +34,14 @@ def mv_files(direct, old_timestamp: str, new_timestamp: str):
         os.system(command)
 
 
-def rename_files():
-    extra_path = 'invalid'
+def rename_files(extra_path: str) -> None:
+    """
+    This function helps update the underlying data. It removes the annoying timestamps from the end of the filenames.
+
+    :param: extra_path: additional segments of input folder.
+    :return: None
+    """
+
     direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data',
                                           extra_path))
     items = os.listdir(direct)
@@ -46,6 +62,10 @@ def rename_files():
 
 
 class HealthDataTable:
+    """
+    Abstract base class. Contains some basic row name rules, data directory name, etc...
+    """
+
     data_dir = None
     csv_data_name = None
 
