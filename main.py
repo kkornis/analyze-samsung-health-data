@@ -1,10 +1,10 @@
-import numpy as np
-import pandas as pd
 import os
-import matplotlib.pyplot as plt
 import json
 import datetime as dt
 import io
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def mv_files(direct, old_timestamp: str, new_timestamp: str):
