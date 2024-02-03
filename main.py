@@ -20,7 +20,7 @@ def mv_files(direct, old_timestamp: str, new_timestamp: str):
 
     files = os.listdir(direct)
     files = [f for f in files if f.endswith('.csv')]
-    if not all([f[-18:-4] == old_timestamp for f in files]):
+    if not all(f[-18:-4] == old_timestamp for f in files):
         for f in files:
             if f[-18:-4] != old_timestamp:
                 print(f, f[-18:-4], old_timestamp)
@@ -47,7 +47,7 @@ def rename_files(extra_path: str) -> None:
     items = os.listdir(direct)
     files = [item for item in items if os.path.isfile(os.path.join(direct, item))]
     directories = [item for item in items if not os.path.isfile(os.path.join(direct, item))]
-    if not all([f.endswith('.csv') for f in files]):
+    if not all(f.endswith('.csv') for f in files):
         print('Warning, unexpected file extension!')
     if not len(directories) == 1 or directories[0] != 'jsons':
         print('Warning, unexpected directories!')
