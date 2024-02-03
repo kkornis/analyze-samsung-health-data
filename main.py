@@ -1,3 +1,7 @@
+"""
+This module intended to provide useful parsing and some visualization od samsung health data
+"""
+
 import os
 import json
 import datetime as dt
@@ -116,16 +120,16 @@ class HealthDataTable:
     @classmethod
     def get_data(cls) -> pd.DataFrame:
         file_name = HealthDataTable.get_csv_file_name(cls.prefix + cls.csv_data_name)
-        file = open(file_name, "r")
-        txt = file.read()
-        # txt.replace('\n,', '\n')
-        lines = txt.split('\n')
+        with open(file_name, "r", encoding="utf-8") as file:
+            txt = file.read()
+            # txt.replace('\n,', '\n')
+            lines = txt.split('\n')
 
-        fline = lines[1] + ','
-        txt_new = '\n'.join([lines[0]] + [fline] + lines[2:])
-        df = pd.read_csv(io.StringIO(txt_new), skiprows=1)
-        df.rename(cls.simplify_column, inplace=True, axis='columns')
-        return df
+            fline = lines[1] + ','
+            txt_new = '\n'.join([lines[0]] + [fline] + lines[2:])
+            df = pd.read_csv(io.StringIO(txt_new), skiprows=1)
+            df.rename(cls.simplify_column, inplace=True, axis='columns')
+            return df
 
     def get_df(self) -> pd.DataFrame:
         return self.get_data()
@@ -135,7 +139,7 @@ class HealthDataTable:
         cols = df.columns
         col_types = [self.dates_cols, self.primary_columns, self.secondary_numeric_columns, self.secondary_str_columns,
                      self.empty_cols, self.id_cols]
-        remaining = [rem for rem in cols if not any([rem in x for x in col_types])]
+        remaining = [rem for rem in cols if not any(rem in x for x in col_types)]
         col_types = col_types + [remaining]
         cols = sum(col_types, [])
         df = df[cols]
@@ -157,7 +161,7 @@ class HealthDataTable:
     @staticmethod
     def get_complex_json_data(hash_data, data_type):
         file_path = HealthDataTable.get_json_file_name(hash_data, data_type)
-        with open(file_path, 'r') as data_file:
+        with open(file_path, 'r', encoding="utf-8") as data_file:
             data = json.load(data_file)
             in_data = data['data'][0]
             advanced_metrics = in_data['advanced_metrics']
@@ -175,24 +179,18 @@ class HealthDataTable:
 class SleepCombined(HealthDataTable):
     csv_data_name = 'sleep_combined'
 
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
-
     def get_formatted_df(self) -> pd.DataFrame:
         return self.get_df()
 
     @staticmethod
-    def simplify_column(x):
-        if x.startswith('com.samsung.health.sleep.'):
-            x = 's.' + x[25:]
-        return x
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.sleep.'):
+            col_name = 's.' + col_name[25:]
+        return col_name
 
 
 class SleepGoal(HealthDataTable):
     csv_data_name = 'sleep_goal'
-
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
 
     def get_formatted_df(self) -> pd.DataFrame:
         return self.get_df()
@@ -207,9 +205,6 @@ class Sleep(HealthDataTable):
     secondary_str_columns = []
     empty_cols = ['sleep_type', 'original_wake_up_time', 'original_bed_time', 'original_efficiency', 'quality']
     id_cols = ['combined_id', 'extra_data']
-
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
 
     def play_with_sleep_data(self):
         df = self.get_formatted_df()
@@ -227,6 +222,7 @@ class Sleep(HealthDataTable):
         df['s.start_time_time'] = ser_h + df['s.start_time'].dt.minute / 60
 
         fig, (ax1, ax2) = plt.subplots(2, 1)
+        fig.tight_layout()
         df.plot(kind='bar', x='s.start_time_date', y='sleep_duration_in_h', bottom=df['s.start_time_time'], ax=ax1)
         ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
 
@@ -255,9 +251,6 @@ class Stress(HealthDataTable):
     secondary_str_columns = []
     empty_cols = ['custom', 'algorithm', 'comment', 'Unnamed: 16']
     id_cols = ['update_time', 'create_time', 'binning_data', 'time_offset', 'deviceuuid', 'pkg_name', 'datauuid']
-
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
 
     def play_with_stress_data(self):
         df = self.get_formatted_df()
@@ -301,9 +294,6 @@ class Exercise(HealthDataTable):
     id_cols = ['live_data_internal', 'sensing_status', 'location_data_internal', 'additional_internal',
                's.location_data', 's.live_data']
 
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
-
     def play_with_exercise_data(self):
         # mean_speed is in m/s
         df = self.get_formatted_df()
@@ -312,17 +302,9 @@ class Exercise(HealthDataTable):
         type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike',
                     14001: 'swim_outdoor', 15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton',
                     4005: 'handball'}
-        df_walk = df[df['s.exercise_type'] == 1001]
-        df_run = df[df['s.exercise_type'] == 1002]
-        df_pull_ups = df[df['s.exercise_type'] == 10005]
-        df_cycling = df[df['s.exercise_type'] == 11007]
-        df_hike = df[df['s.exercise_type'] == 13001]
-        df_swim_outdoor = df[df['s.exercise_type'] == 14001]
-        df_weight_machines = df[df['s.exercise_type'] == 15002]
-        df_push_up = df[df['s.exercise_type'] == 10004]
-        df_badminton = df[df['s.exercise_type'] == 6003]
-        df_handball = df[df['s.exercise_type'] == 4005]
+        df_map = {value: df[df['s.exercise_type'] == key] for key, value in type_map.items()}
 
+        df_run = df_map['run']
         df_run.loc[:, 's.mean_speed_kmph'] = df_run['s.mean_speed'] * 3.6
         df_run.loc[:, 's.max_speed_kmh'] = df_run['s.max_speed'] * 3.6 - df_run['s.mean_speed_kmph']
 
@@ -332,7 +314,7 @@ class Exercise(HealthDataTable):
         df_plot.set_index('s.start_time_date', inplace=True)
         df_plot.plot.bar(stacked=True)
 
-        line_ind = 0
+        line_ind = len(df_run) - 1
 
         data1 = self.get_json_data(df_run['live_data_internal'].iloc[line_ind], 's.exercise')
         data2 = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
@@ -361,15 +343,13 @@ class HeartRate(HealthDataTable):
     id_cols = ['tag_id', 's.binning_data', 's.update_time', 's.create_time',
                's.time_offset', 's.deviceuuid']
 
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
-
     def play_with_heart_rate_data(self):
         df = self.get_formatted_df()
         df['diff'] = df['s.max'] - df['s.min']
         df['s.start_time_date'] = df['s.start_time'].dt.date
 
         fig, ax = plt.subplots(1, 1)
+        fig.tight_layout()
         # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
         df.plot(x='s.start_time', y=['s.heart_rate', 's.min', 's.max'], ax=ax)
         ax.hlines(y=50, xmin=df['s.start_time'].iloc[0], xmax=df['s.start_time'].iloc[len(df)-1], colors='r')
@@ -396,9 +376,6 @@ class Weight(HealthDataTable):
 
     prefix = ''
 
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
-
     def play_with_weight_data(self):
         df = self.get_formatted_df()
         df['s_body_fat_mass'] = df['body_fat_mass'] + 30
@@ -422,14 +399,12 @@ class Rewards(HealthDataTable):
     dates_cols = [index_col, 'end_time', 'update_time', 'create_time']
     id_cols = ['datauuid']
 
-    def __init__(self, data_dir: str):
-        super().__init__(data_dir)
-
     def play_with_rewards_data(self):
         df = self.get_formatted_df()
         df['s_body_fat_mass'] = df['body_fat_mass'] + 30
         df['s_weight'] = df['weight'] - 30
         fig, ax = plt.subplots(1, 1)
+        fig.tight_layout()
         # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
         df.plot(x=self.index_col, y=['skeletal_muscle_mass', 's_body_fat_mass', 'total_body_water', 's_weight'], ax=ax)
         # ax.hlines(y=50, xmin=df['start_time'].iloc[0], xmax=df['start_time'].iloc[len(df)-1], colors='r')
@@ -466,4 +441,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
