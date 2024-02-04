@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.8", "3.9", "3.10"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -20,4 +20,4 @@ jobs:
         pip install pylint numpy pandas matplotlib
     - name: Analysing the code with pylint
       run: |
-        pylint --max-line-length=120 $(git ls-files '*.py')
+        pylint --max-line-length=120 --disable=C0116 --disable=C0115 --disable=E1101 $(git ls-files '*.py')

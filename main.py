@@ -195,6 +195,16 @@ class SleepGoal(HealthDataTable):
     def get_formatted_df(self) -> pd.DataFrame:
         return self.get_df()
 
+    @staticmethod
+    def simplify_column(col_name):
+        if col_name.startswith('com.samsung.health.sleep.'):
+            col_name = 's.' + col_name[25:]
+        return col_name
+
+    def play_with_sleep_data(self):
+        df = self.get_formatted_df()
+        return df
+
 
 class Sleep(HealthDataTable):
     csv_data_name = 'sleep'
@@ -316,15 +326,20 @@ class Exercise(HealthDataTable):
 
         line_ind = len(df_run) - 1
 
-        data1 = self.get_json_data(df_run['live_data_internal'].iloc[line_ind], 's.exercise')
-        data2 = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
-        data3 = self.get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
-        data4 = self.get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
-        data5 = self.get_json_data(df_run['s.location_data'].iloc[line_ind], 's.exercise')
-        data6 = self.get_json_data(df_run['s.live_data'].iloc[line_ind], 's.exercise')
-        # data7 = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
+        df_live_data_internal = self.get_json_data(df_run['live_data_internal'].iloc[line_ind], 's.exercise')
+        # df_sensing_status = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
+        # df_location_data_internal = self.get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
+        # df_addit_internal = self.get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
+        df_location_data = self.get_json_data(df_run['s.location_data'].iloc[line_ind], 's.exercise')
+        df_live_data = self.get_json_data(df_run['s.live_data'].iloc[line_ind], 's.exercise')
+        # df_datauuid = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
 
-        return df
+        df_location_data.plot(x='longitude', y='latitude')
+        df_live_data_internal.plot(x='elapsed_time', y='interval')
+        df_live_data.sort_values(by=['distance'], inplace=True)
+        df_live_data.reset_index(drop=True, inplace=True)
+        df_live_data.plot(x='distance', y=['cadence', 'speed'])
+        return df_map
 
     @staticmethod
     def simplify_column(col_name):
@@ -440,4 +455,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # rename_files()
     main()
