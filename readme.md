@@ -1,4 +1,5 @@
 [![linting: pylint](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/pylint-dev/pylint)
+
 This repository helps to analyze data extracted from shealth.
 
 How to get the data
