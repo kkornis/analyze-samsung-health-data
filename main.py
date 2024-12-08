@@ -9,6 +9,7 @@ import io
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 
 
 def mv_files(direct, old_timestamp: str, new_timestamp: str):
@@ -127,6 +128,8 @@ class HealthDataTable:
 
             fline = lines[1] + ','
             txt_new = '\n'.join([lines[0]] + [fline] + lines[2:])
+
+            # df = pd.DataFrame([line.split(',')[:-1] for line in lines[2:-1]], columns=lines[1].split(','))
             df = pd.read_csv(io.StringIO(txt_new), skiprows=1)
             df.rename(cls.simplify_column, inplace=True, axis='columns')
             return df
@@ -235,6 +238,7 @@ class Sleep(HealthDataTable):
         fig.tight_layout()
         df.plot(kind='bar', x='s.start_time_date', y='sleep_duration_in_h', bottom=df['s.start_time_time'], ax=ax1)
         ax1.hlines(y=[-1, 7], xmin=0, xmax=len(df), colors=['r', 'r'])
+        ax1.hlines(y=[0, 1, 2, 3, 4, 5, 6], xmin=0, xmax=len(df), colors=['r', 'r'], linewidth=0.5)
 
         df.plot(kind='bar', x='s.start_time_date', y='sleep_score', ax=ax2, color='g')
         return df
@@ -259,7 +263,7 @@ class Stress(HealthDataTable):
     primary_columns = ['max', 'min', 'score']
     secondary_numeric_columns = []
     secondary_str_columns = []
-    empty_cols = ['custom', 'algorithm', 'comment', 'Unnamed: 16']
+    empty_cols = ['custom', 'algorithm', 'comment']
     id_cols = ['update_time', 'create_time', 'binning_data', 'time_offset', 'deviceuuid', 'pkg_name', 'datauuid']
 
     def play_with_stress_data(self):
@@ -304,11 +308,43 @@ class Exercise(HealthDataTable):
     id_cols = ['live_data_internal', 'sensing_status', 'location_data_internal', 'additional_internal',
                's.location_data', 's.live_data']
 
+    @staticmethod
+    def create_kml(df_kml, name, color="ff0000ff"):
+        kml_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data',
+                                             'kmls', name))
+        cols = ['longitude', 'latitude', 'altitude']
+        cols = [col for col in cols if col in df_kml.columns]
+        df = df_kml[cols]
+        with open(kml_path, 'w') as kml_file:
+            kml_file.write("<kml><Document><Placemark>" \
+                           "<name>route</name>" \
+                           "<visibility>0</visibility>" \
+                           "<Style><LineStyle>" \
+                           "<color>" + color + "</color>" \
+                           "<width>3</width>" \
+                           "</LineStyle></Style>" \
+                           "<styleUrl>#inline600</styleUrl>" \
+                           "<LineString><tessellate>1</tessellate><coordinates>")
+
+            df.to_csv(kml_file, header=False, index=False, lineterminator=' ')
+            kml_file.write("</coordinates></LineString></Placemark></Document></kml>")
+
+
     def play_with_exercise_data(self):
         # mean_speed is in m/s
         df = self.get_formatted_df()
         if len(df) == 0:
             return df
+        # df_walk = df[df['s.exercise_type'] == 1001]
+        # df_run = df[df['s.exercise_type'] == 1002]
+        # df_pull_ups = df[df['s.exercise_type'] == 10005]
+        # df_cycling = df[df['s.exercise_type'] == 11007]
+        # df_hike = df[df['s.exercise_type'] == 13001]
+        # df_swim_outdoor = df[df['s.exercise_type'] == 14001]
+        # df_weight_machines = df[df['s.exercise_type'] == 15002]
+        # df_push_up = df[df['s.exercise_type'] == 10004]
+        # df_badminton = df[df['s.exercise_type'] == 6003]
+        # df_handball = df[df['s.exercise_type'] == 4005]
         type_map = {1001: 'walk', 1002: 'run', 10005: 'pull_ups', 11007: 'cycling', 13001: 'hike',
                     14001: 'swim_outdoor', 15002: 'weight_machines', 10004: 'push_up', 6003: 'badminton',
                     4005: 'handball'}
@@ -324,21 +360,45 @@ class Exercise(HealthDataTable):
         df_plot.set_index('s.start_time_date', inplace=True)
         df_plot.plot.bar(stacked=True)
 
-        line_ind = len(df_run) - 1
+        df_hike = df_map['hike']
+        line_ind = len(df_hike) - 1
 
-        df_live_data_internal = self.get_json_data(df_run['live_data_internal'].iloc[line_ind], 's.exercise')
-        # df_sensing_status = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
-        # df_location_data_internal = self.get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
-        # df_addit_internal = self.get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
-        df_location_data = self.get_json_data(df_run['s.location_data'].iloc[line_ind], 's.exercise')
-        df_live_data = self.get_json_data(df_run['s.live_data'].iloc[line_ind], 's.exercise')
-        # df_datauuid = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
+        for i in range(len(df_hike)):
+            df_location_data = self.get_json_data(df_hike['s.location_data'].iloc[i], 's.exercise')
+            self.create_kml(df_location_data, "hike_" + str(df_hike['s.start_time'].dt.date.iloc[i]) + ".kml")
 
-        df_location_data.plot(x='longitude', y='latitude')
-        df_live_data_internal.plot(x='elapsed_time', y='interval')
-        df_live_data.sort_values(by=['distance'], inplace=True)
-        df_live_data.reset_index(drop=True, inplace=True)
-        df_live_data.plot(x='distance', y=['cadence', 'speed'])
+        df_run = df_map['run']
+        for i in range(len(df_run)):
+            if not df_run['s.location_data'].isna().iloc[i]:
+                df_location_data = self.get_json_data(df_run['s.location_data'].iloc[i], 's.exercise')
+                self.create_kml(df_location_data, "run_" + str(df_run['s.start_time'].dt.date.iloc[i]) + ".kml", "ffffff00")
+
+        df_walk = df_map['walk']
+        for i in range(len(df_walk)):
+            if not df_walk['s.location_data'].isna().iloc[i]:
+                df_location_data = self.get_json_data(df_walk['s.location_data'].iloc[i], 's.exercise')
+                self.create_kml(df_location_data, "walk_" + str(df_walk['s.start_time'].dt.date.iloc[i]) + ".kml")
+
+        df_bike = df_map['cycling']
+        for i in range(len(df_bike)):
+            if not df_bike['s.location_data'].isna().iloc[i]:
+                df_location_data = self.get_json_data(df_bike['s.location_data'].iloc[i], 's.exercise')
+                self.create_kml(df_location_data, "bike_" + str(df_bike['s.start_time'].dt.date.iloc[i]) + ".kml", "ffff00ff")
+
+        # df_live_data_internal = self.get_json_data(df_hike['live_data_internal'].iloc[line_ind], 's.exercise')
+        # # df_sensing_status = self.get_json_data(df_run['sensing_status'].iloc[line_ind], 's.exercise')
+        # # df_location_data_internal = self.get_json_data(df_run['location_data_internal'].iloc[line_ind], 's.exercise')
+        # # df_addit_internal = self.get_complex_json_data(df_run['additional_internal'].iloc[line_ind], 's.exercise')
+        # df_location_data = self.get_json_data(df_hike['s.location_data'].iloc[line_ind], 's.exercise')
+        # df_live_data = self.get_json_data(df_hike['s.live_data'].iloc[line_ind], 's.exercise')
+        # self.create_kml(df_location_data, str(df_hike['s.start_time'].dt.date.iloc[line_ind]) + ".kml")
+        # # df_datauuid = get_json_data(df_run['s.e.datauuid'].iloc[line_ind] + '.heart_rate.json', True)
+        # 
+        # df_location_data.plot(x='longitude', y='latitude')
+        # df_live_data_internal.plot(x='elapsed_time', y='interval')
+        # df_live_data.sort_values(by=['distance'], inplace=True)
+        # df_live_data.reset_index(drop=True, inplace=True)
+        # df_live_data.plot(x='distance', y=['cadence', 'speed'])
         return df_map
 
     @staticmethod
@@ -391,6 +451,12 @@ class Weight(HealthDataTable):
 
     prefix = ''
 
+    def plot_with_ma(self, df, label: str, ax, color):
+        ax2 = ax.twinx()
+        new_label = label + '_ma'
+        df[new_label] = df[label].rolling(window=7).mean()
+        df.plot(x=self.index_col, y=[label + '_ma'], ax=ax2, color=color)
+
     def play_with_weight_data(self):
         df = self.get_formatted_df()
         df['s_body_fat_mass'] = df['body_fat_mass'] + 30
@@ -398,7 +464,16 @@ class Weight(HealthDataTable):
         fig, ax = plt.subplots(1, 1)
         fig.tight_layout()
         # df.plot(kind='bar', x='s.h.start_time_date', y='diff', bottom=df['s.min'])
-        df.plot(x=self.index_col, y=['skeletal_muscle_mass', 's_body_fat_mass', 'total_body_water', 's_weight'], ax=ax)
+        # df.plot(x=self.index_col, y=['skeletal_muscle_mass', 's_body_fat_mass', 'total_body_water', 's_weight'],
+        #         ax=ax)
+
+        self.plot_with_ma(df, 'skeletal_muscle_mass', ax, 'b')
+        self.plot_with_ma(df, 's_body_fat_mass', ax, 'r')
+
+        # ax2 = ax.twinx()
+        #
+        # df.plot(x=self.index_col, y=['skeletal_muscle_mass'], ax=ax)
+        # df.plot(x=self.index_col, y=['s_body_fat_mass'], ax=ax2, color='r')
         # ax.hlines(y=50, xmin=df['start_time'].iloc[0], xmax=df['start_time'].iloc[len(df)-1], colors='r')
         return df
 
@@ -412,6 +487,11 @@ class Rewards(HealthDataTable):
 
     index_col = 'start_time'
     dates_cols = [index_col, 'end_time', 'update_time', 'create_time']
+    # primary_columns = ['skeletal_muscle', 'skeletal_muscle_mass', 'fat_free', 'fat_free_mass', 'body_fat',
+    #                    'total_body_water', 'body_fat_mass', 'height', 'weight', 'basal_metabolic_rate']
+    # secondary_str_columns = []
+    # meaningless_col = []
+    # empty_cols = ['vfa_level', 'custom', 'muscle_mass']
     id_cols = ['datauuid']
 
     def play_with_rewards_data(self):
@@ -430,30 +510,120 @@ class Rewards(HealthDataTable):
         return col_name
 
 
+def try_to_explain(df_combined, big_leaps=True, shift_size=1):
+    if big_leaps:
+        # TODO
+        pass
+
+        # try_to_explain(df_combined, big_leaps=False)
+    weight_rel_cols = ['skeletal_muscle_mass', 'body_fat_mass', 'weight']
+    weight_rel = df_combined[weight_rel_cols]
+    returns = weight_rel - weight_rel.shift(1)
+
+    shifted_returns = returns.shift( - shift_size)
+    df_expl = df_combined.loc[:, df_combined.columns.difference(weight_rel_cols)]
+    df_combined = pd.merge(shifted_returns, df_expl, left_index=True, right_index=True, how='outer')
+    df_combined.dropna(subset=weight_rel_cols, inplace=True)
+    shifted_returns2 = df_combined[weight_rel_cols]
+
+    df_expl = df_combined.loc[:, df_combined.columns.difference(weight_rel_cols)]
+    df_expl.fillna(0, inplace=True)
+    df_expl['const'] = 1
+
+    mmult = df_expl.T.dot(df_expl)
+    mmult_inv = pd.DataFrame(np.linalg.pinv(mmult.values), mmult.columns, mmult.index)
+    subject = df_expl.dot(mmult_inv)
+    
+    filled_returns = shifted_returns2.fillna(0)
+    res = filled_returns.T.dot(subject)
+    # res.rename({x: x + '_' + str(shift_size) for x in res.index}, axis=0, inplace=True)
+    return res
+    
+
+def play_with_combined_data(df_weight, df_exercise, df_sleep, df_heart_rate, df_nutrients):
+    time = pd.to_datetime(df_weight['start_time'])
+    assert all(pd.to_datetime(df_weight['start_time']).dt.date == pd.to_datetime(df_weight['update_time']).dt.date)
+    assert all(pd.to_datetime(df_weight['start_time']).dt.date == pd.to_datetime(df_weight['create_time']).dt.date)
+
+    assert all(pd.to_datetime(df_exercise['s.start_time']).dt.date == pd.to_datetime(df_exercise['s.end_time']).dt.date)
+    # assert all(pd.to_datetime(df_sleep['s.start_time']).dt.date == pd.to_datetime(df_sleep['s.end_time']).dt.date)
+    assert all(pd.to_datetime(df_heart_rate['s.start_time']).dt.date ==
+               pd.to_datetime(df_heart_rate['s.end_time']).dt.date)
+
+    df_sleep['time'] = pd.to_datetime(df_sleep['s.end_time']).dt.date
+    df_combined = df_sleep[['time', 'mental_recovery', 'physical_recovery', 'sleep_score', 'efficiency']] #,
+                            #'sleep_duration']]
+    df_combined.drop(['mental_recovery', 'physical_recovery', 'efficiency'], inplace=True, axis=1)
+    df_combined = df_combined.groupby(['time']).sum()
+
+    df_nutrients = df_nutrients[df_nutrients['calorie(k)'] > 1675]
+    df_nutrients.drop(['calorie(k)', 'zinc(mg)', 'saturated fat(g)', 'magnesium(mg)', 'sugar(g)', 'fiber(g)', 'salt(g)'], inplace=True, axis=1)
+
+    df_combined = pd.merge(df_nutrients, df_combined, left_index=True, right_index=True, how='outer')
+
+    df_exercise['time'] = pd.to_datetime(df_exercise['s.end_time']).dt.date
+    df_exercise_new = df_exercise[['time', 'total_calorie']]  # , 'heart_rate_sample_count'
+    df_exercise_new = df_exercise_new.groupby(['time']).sum()
+    # df_exercise_new.set_index('time', inplace=True)
+
+    df_combined = pd.merge(df_exercise_new, df_combined, left_index=True, right_index=True, how='outer')
+
+    df_weight['time'] = pd.to_datetime(df_weight['start_time']).dt.date
+    df_weight_new = df_weight[['time', 'skeletal_muscle_mass', 'body_fat_mass', 'weight']]
+    df_weight_new = df_weight_new.groupby(['time']).mean()
+    # df_weight_new.set_index('time', inplace=True)
+
+    df_combined = pd.merge(df_weight_new, df_combined, left_index=True, right_index=True, how='outer')
+
+    # df1 = try_to_explain(df_combined, big_leaps=False, shift_size=1)
+    # df2 = try_to_explain(df_combined, big_leaps=False, shift_size=2)
+    # df3 = try_to_explain(df_combined, big_leaps=False, shift_size=3)
+    # df4 = try_to_explain(df_combined, big_leaps=False, shift_size=4)
+
+    results = [try_to_explain(df_combined, big_leaps=False, shift_size=shift_size) for shift_size in range(1, 10)]
+    df = pd.concat(results)
+    average = sum(results) / len(results)
+    
+    xcv = 111
+
+
+def get_input_nutrients(file_name) -> pd.DataFrame:
+    df = pd.read_csv(file_name)
+    df.drop(['Unnamed: 0'], inplace=True, axis=1)
+    df['date'] = pd.to_datetime(df['date']).dt.date
+    df.set_index('date', inplace=True)
+    return df
+
+
 def main():
     direct = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'samsung_health_galaxy5_watch_data', 'data'))
 
-    sleep = Sleep(direct)
-    sleep.play_with_sleep_data()
+    # sleep = Sleep(direct)
+    # sleep.play_with_sleep_data()
 
     exercise = Exercise(direct)
     exercise.play_with_exercise_data()
-
-    heart_rate = HeartRate(direct)
-    heart_rate.play_with_heart_rate_data()
-
-    weight = Weight(direct)
-    weight.play_with_weight_data()
-
-    stress = Stress(direct)
-    stress.play_with_stress_data()
+    #
+    # heart_rate = HeartRate(direct)
+    # heart_rate.play_with_heart_rate_data()
+    #
+    # weight = Weight(direct)
+    # weight.play_with_weight_data()
+    #
+    # stress = Stress(direct)
+    # stress.play_with_stress_data()
 
     # rewards = Rewards(direct)
     # rewards.play_with_rewards_data()
+    #
+    # plt.show()
 
-    plt.show()
+    # input_nutrients = get_input_nutrients()
+
+    # play_with_combined_data(weight.get_formatted_df(), exercise.get_formatted_df(), sleep.get_formatted_df(),
+    #                         heart_rate.get_formatted_df(), input_nutrients)
 
 
 if __name__ == '__main__':
-    # rename_files()
+    # rename_files("data")
     main()
